@@ -23,7 +23,7 @@ local success, errorMessage = pcall(function()
     repeat task.wait() until LocalPlayer
 
     -- Load Ray Field UI
-    local Rayfield = loadstring(game:HttpGet("https://raw.githubusercontent.com/RayFieldDev/RayField/main/source"))()
+    local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
     if not Rayfield then
         warn("[Hub] Failed to load Ray Field UI")

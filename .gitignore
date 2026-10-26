@@ -1,0 +1,14 @@
+# Old overlay project files
+*.dSYM
+*.o
+*.mm
+*.cpp
+build.sh
+vex_engine
+vex_selftest
+mock_roblox
+vex_overlay
+vex
+*.backup
+*.devin-backup
+history_*.md

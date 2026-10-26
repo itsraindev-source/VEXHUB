@@ -1,5 +1,5 @@
 -- ============================================
--- Blox Fruits Script Hub - Update 30
+-- Blox Fruits Hub - Update 30
 -- Using Ray Field UI Library
 -- Version: 30.0
 -- ============================================
@@ -15,9 +15,10 @@ local success, errorMessage = pcall(function()
     local LocalPlayer = Players.LocalPlayer
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
     local RunService = game:GetService("RunService")
-
+    local TweenService = game:GetService("TweenService")
     local UserInputService = game:GetService("UserInputService")
     local VirtualUser = game:GetService("VirtualUser")
+    local Workspace = game:GetService("Workspace")
 
     -- Wait for player
     repeat task.wait() until LocalPlayer
@@ -51,6 +52,7 @@ local Window = Rayfield:CreateWindow({
 local autoFarmEnabled = false
 local farmConnection
 local targetEnemy = nil
+local magnetEnabled = true
 
 local function findNearestEnemy()
     local character = LocalPlayer.Character
@@ -62,18 +64,19 @@ local function findNearestEnemy()
     local nearestEnemy = nil
     local nearestDistance = math.huge
     
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            local enemyCharacter = player.Character
-            if enemyCharacter then
-                local enemyHumanoid = enemyCharacter:FindFirstChild("Humanoid")
-                local enemyRootPart = enemyCharacter:FindFirstChild("HumanoidRootPart")
+    -- Look in Workspace.Enemies
+    local enemiesFolder = Workspace:FindFirstChild("Enemies")
+    if enemiesFolder then
+        for _, enemy in pairs(enemiesFolder:GetDescendants()) do
+            if enemy:IsA("Model") and enemy:FindFirstChild("Humanoid") then
+                local humanoid = enemy.Humanoid
+                local rootPart = enemy:FindFirstChild("HumanoidRootPart")
                 
-                if enemyHumanoid and enemyHumanoid.Health > 0 and enemyRootPart then
-                    local distance = (enemyRootPart.Position - humanoidRootPart.Position).Magnitude
-                    if distance < nearestDistance and distance < 100 then
+                if humanoid.Health > 0 and rootPart then
+                    local distance = (rootPart.Position - humanoidRootPart.Position).Magnitude
+                    if distance < nearestDistance and distance < 200 then
                         nearestDistance = distance
-                        nearestEnemy = enemyCharacter
+                        nearestEnemy = enemy
                     end
                 end
             end
@@ -81,6 +84,43 @@ local function findNearestEnemy()
     end
     
     return nearestEnemy
+end
+
+local function magnetEnemy(enemy)
+    if not magnetEnabled then return end
+    
+    local character = LocalPlayer.Character
+    if not character then return end
+    
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return end
+    
+    local enemyRootPart = enemy:FindFirstChild("HumanoidRootPart")
+    local enemyHumanoid = enemy:FindFirstChild("Humanoid")
+    
+    if enemyRootPart and enemyHumanoid then
+        pcall(function()
+            enemyHumanoid.PlatformStand = true
+            enemyHumanoid.Sit = true
+            enemyRootPart.CanCollide = false
+            enemyRootPart.Size = Vector3.new(60, 60, 60)
+            enemyRootPart.CFrame = rootPart.CFrame * CFrame.new(0, -15, 0)
+        end)
+    end
+end
+
+local function resetEnemy(enemy)
+    local enemyRootPart = enemy:FindFirstChild("HumanoidRootPart")
+    local enemyHumanoid = enemy:FindFirstChild("Humanoid")
+    
+    if enemyRootPart and enemyHumanoid then
+        pcall(function()
+            enemyHumanoid.PlatformStand = false
+            enemyHumanoid.Sit = false
+            enemyRootPart.CanCollide = true
+            enemyRootPart.Size = Vector3.new(2, 2, 1)
+        end)
+    end
 end
 
 local function startAutoFarm()
@@ -102,16 +142,26 @@ local function startAutoFarm()
             local enemyRootPart = targetEnemy:FindFirstChild("HumanoidRootPart")
             if enemyRootPart then
                 local distance = (enemyRootPart.Position - rootPart.Position).Magnitude
-                if distance > 5 then
-                    humanoid:MoveTo(enemyRootPart.Position)
+                
+                if distance > 15 then
+                    -- Tween to enemy (safer than instant teleport)
+                    local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Linear)
+                    local tween = TweenService:Create(rootPart, tweenInfo, {
+                        CFrame = CFrame.new(enemyRootPart.Position + Vector3.new(0, 0, 5))
+                    })
+                    tween:Play()
                 else
+                    -- Magnet enemy to player
+                    magnetEnemy(targetEnemy)
+                    
+                    -- Attack
                     local tool = character:FindFirstChildOfClass("Tool")
                     if tool then
                         tool:Activate()
                     else
-                        VirtualUser:Button1Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+                        VirtualUser:Button1Down(Vector2.new(0, 0), Workspace.CurrentCamera.CFrame)
                         task.wait(0.1)
-                        VirtualUser:Button1Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+                        VirtualUser:Button1Up(Vector2.new(0, 0), Workspace.CurrentCamera.CFrame)
                     end
                 end
             end
@@ -224,16 +274,16 @@ local function enableFly()
         local moveVector = Vector3.new(0, 0, 0)
         
         if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-            local camera = workspace.CurrentCamera
+            local camera = Workspace.CurrentCamera
             moveVector = camera.CFrame.LookVector * 50
         elseif UserInputService:IsKeyDown(Enum.KeyCode.S) then
-            local camera = workspace.CurrentCamera
+            local camera = Workspace.CurrentCamera
             moveVector = -camera.CFrame.LookVector * 50
         elseif UserInputService:IsKeyDown(Enum.KeyCode.A) then
-            local camera = workspace.CurrentCamera
+            local camera = Workspace.CurrentCamera
             moveVector = -camera.CFrame.RightVector * 50
         elseif UserInputService:IsKeyDown(Enum.KeyCode.D) then
-            local camera = workspace.CurrentCamera
+            local camera = Workspace.CurrentCamera
             moveVector = camera.CFrame.RightVector * 50
         elseif UserInputService:IsKeyDown(Enum.KeyCode.Space) then
             moveVector = Vector3.new(0, 50, 0)
@@ -241,7 +291,7 @@ local function enableFly()
         
         flyVelocity.Velocity = moveVector
     end)
-end
+end)
 
 local function disableFly()
     flyEnabled = false
@@ -283,7 +333,7 @@ local function enableNoClip()
             end
         end
     end)
-end
+end)
 
 local function disableNoClip()
     noClipEnabled = false
@@ -302,7 +352,7 @@ local function disableNoClip()
     end
 end
 
--- Stats
+-- Stats (using Blox Fruits CommF_ remote)
 local autoStatsEnabled = false
 local autoStatsConnection
 
@@ -310,32 +360,19 @@ local function addStats(statType, amount)
     local player = Players.LocalPlayer
     if not player then return end
     
-    local leaderstats = player:FindFirstChild("leaderstats")
-    if not leaderstats then return end
-    
-    local stat = leaderstats:FindFirstChild(statType)
-    if not stat then return end
-    
-    local remoteEvents = {"StatsAdd", "AddStat", "IncrementStat", "AddPoints", "AddStats"}
-    
-    for _, remoteName in ipairs(remoteEvents) do
-        local remote = ReplicatedStorage:FindFirstChild(remoteName)
-        if remote and remote:IsA("RemoteEvent") then
-            pcall(function()
-                remote:FireServer(statType, amount)
-            end)
-        end
+    -- Use Blox Fruits CommF_ remote
+    local commF = ReplicatedStorage:FindFirstChild("Remotes"):FindFirstChild("CommF_")
+    if commF then
+        pcall(function()
+            commF:InvokeServer("AddPoint", statType, amount)
+        end)
     end
-    
-    pcall(function()
-        stat.Value = stat.Value + amount
-    end)
 end
 
 local function maxStat(statType)
     for i = 1, 10 do
         addStats(statType, 10)
-        task.wait(0.05)
+        task.wait(0.1)
     end
 end
 
@@ -356,7 +393,8 @@ local function enableAutoRaid()
         local rootPart = character:FindFirstChild("HumanoidRootPart")
         if not humanoid or not rootPart then return end
         
-        for _, obj in pairs(workspace:GetDescendants()) do
+        -- Look for raid entrance
+        for _, obj in pairs(Workspace:GetDescendants()) do
             if obj.Name:find("Raid") or obj.Name:find("raid") then
                 if obj:IsA("Model") or obj:IsA("Folder") then
                     local distance = ((obj.PrimaryPart and obj.PrimaryPart.Position or obj.Position)
@@ -374,7 +412,7 @@ local function enableAutoRaid()
             end
         end
     end)
-end
+end)
 
 local function disableAutoRaid()
     autoRaidEnabled = false
@@ -397,7 +435,8 @@ local function enableAutoQuest()
         local character = LocalPlayer.Character
         if not character then return end
         
-        for _, npc in pairs(workspace:GetDescendants()) do
+        -- Check for quest NPCs in Workspace
+        for _, npc in pairs(Workspace:GetDescendants()) do
             if npc:IsA("Model") and npc:FindFirstChild("Humanoid") then
                 local head = npc:FindFirstChild("Head")
                 if head then
@@ -421,7 +460,7 @@ local function enableAutoQuest()
             end
         end
     end)
-end
+end)
 
 local function disableAutoQuest()
     autoQuestEnabled = false
@@ -447,7 +486,7 @@ local function enableAutoBuyFruits()
         local rootPart = character:FindFirstChild("HumanoidRootPart")
         if not rootPart then return end
         
-        for _, npc in pairs(workspace:GetDescendants()) do
+        for _, npc in pairs(Workspace:GetDescendants()) do
             if npc.Name:find("Dealer") or npc.Name:find("Fruit") then
                 if npc:IsA("Model") then
                     local head = npc:FindFirstChild("Head")
@@ -465,7 +504,7 @@ local function enableAutoBuyFruits()
                                             end
                                         end
                                     end)
-                                end
+                                end)
                             end
                         end
                     end
@@ -473,7 +512,7 @@ local function enableAutoBuyFruits()
             end
         end
     end)
-end
+end)
 
 local function disableAutoBuyFruits()
     autoBuyEnabled = false
@@ -508,7 +547,7 @@ local function enableNoCooldown()
             end
         end
     end)
-end
+end)
 
 local function disableNoCooldown()
     noCooldownEnabled = false
@@ -543,7 +582,7 @@ local function enableInfiniteRange()
             end
         end
     end)
-end
+end)
 
 local function disableInfiniteRange()
     infiniteRangeEnabled = false
@@ -570,7 +609,7 @@ local function enableAutoDodge()
         local rootPart = character:FindFirstChild("HumanoidRootPart")
         if not humanoid or not rootPart then return end
         
-        for _, projectile in pairs(workspace:GetDescendants()) do
+        for _, projectile in pairs(Workspace:GetDescendants()) do
             if projectile:IsA("BasePart") and projectile:GetAttribute("Damage") then
                 local distance = (projectile.Position - rootPart.Position).Magnitude
                 if distance < 20 then
@@ -581,7 +620,7 @@ local function enableAutoDodge()
             end
         end
     end)
-end
+end)
 
 local function disableAutoDodge()
     autoDodgeEnabled = false
@@ -607,22 +646,20 @@ local function enableBringEnemies()
         local rootPart = character:FindFirstChild("HumanoidRootPart")
         if not rootPart then return end
         
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer then
-                local enemyCharacter = player.Character
-                if enemyCharacter then
-                    local enemyRootPart = enemyCharacter:FindFirstChild("HumanoidRootPart")
-                    if enemyRootPart then
-                        local distance = (enemyRootPart.Position - rootPart.Position).Magnitude
-                        if distance < 50 then
-                            enemyRootPart.CFrame = rootPart.CFrame * CFrame.new(0, 0, 5)
-                        end
+        local enemiesFolder = Workspace:FindFirstChild("Enemies")
+        if enemiesFolder then
+            for _, enemy in pairs(enemiesFolder:GetDescendants()) do
+                if enemy:IsA("Model") and enemy:FindFirstChild("HumanoidRootPart") then
+                    local enemyRootPart = enemy.HumanoidRootPart
+                    local distance = (enemyRootPart.Position - rootPart.Position).Magnitude
+                    if distance < 50 then
+                        magnetEnemy(enemy)
                     end
                 end
             end
         end
     end)
-end
+end)
 
 local function disableBringEnemies()
     bringEnemiesEnabled = false
@@ -651,13 +688,13 @@ local function enableAutoAttack()
             if tool then
                 tool:Activate()
             else
-                VirtualUser:Button1Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+                VirtualUser:Button1Down(Vector2.new(0, 0), Workspace.CurrentCamera.CFrame)
                 task.wait(0.1)
-                VirtualUser:Button1Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+                VirtualUser:Button1Up(Vector2.new(0, 0), Workspace.CurrentCamera.CFrame)
             end
         end
     end)
-end
+end)
 
 local function disableAutoAttack()
     autoAttackEnabled = false
@@ -697,7 +734,7 @@ local function enableTeleportToPlayer()
         
         rootPart.CFrame = targetRootPart.CFrame * CFrame.new(0, 0, 5)
     end)
-end
+end)
 
 local function disableTeleportToPlayer()
     teleportEnabled = false
@@ -730,7 +767,7 @@ MainTab:CreateToggle({
             startAutoFarm()
             Rayfield:Notify({
                 Title = "Auto Farm",
-                Content = "Enabled",
+                Content = "Enabled - Finds enemies in Workspace.Enemies",
                 Duration = 3,
                 Image = 4483362458
             })
@@ -791,12 +828,11 @@ MainTab:CreateToggle({
             end)
             Rayfield:Notify({
                 Title = "Auto Stats",
-                Content = "Enabled",
+                Content = "Enabled - Uses CommF_ remote",
                 Duration = 3,
                 Image = 4483362458
             })
         else
-            autoStatsEnabled = false
             Rayfield:Notify({
                 Title = "Auto Stats",
                 Content = "Disabled",
@@ -968,7 +1004,7 @@ CombatTab:CreateToggle({
             enableBringEnemies()
             Rayfield:Notify({
                 Title = "Bring Enemies",
-                Content = "Enabled",
+                Content = "Enabled - Magnet farming",
                 Duration = 3,
                 Image = 4483362458
             })
@@ -1269,6 +1305,8 @@ Rayfield:Load()
 print("[Hub] Blox Fruits Hub loaded successfully!")
 print("[Hub] Using Ray Field UI")
 print("[Hub] All features ready")
+print("[Hub] Auto Farm now targets Workspace.Enemies")
+print("[Hub] Stats use CommF_ remote event")
 
 end)
 

@@ -548,39 +548,39 @@ local function enableAutoQuest()
                     questName = "PoleQuest2"
                 elseif lvl >= 1500 and lvl < 1550 then
                     questName = "PaleHeartQuest1"
-                elseif lvl >= 1550 and lvl < 1600"
+                elseif lvl >= 1550 and lvl < 1600 then
                     questName = "EliteHunterQuest1"
-                elseif lvl >= 1600 and lvl < 1650
+                elseif lvl >= 1600 and lvl < 1650 then
                     questName = "DarkbeardQuest1"
-                elseif lvl >= 1650 and lvl < 1700
+                elseif lvl >= 1650 and lvl < 1700 then
                     questName = "AwakeningQuest1"
-                elseif lvl >= 1700 and lvl < 1750
+                elseif lvl >= 1700 and lvl < 1750 then
                     questName = "RipIndraQuest2"
-                elseif lvl >= 1750 and lvl < 1800
+                elseif lvl >= 1750 and lvl < 1800 then
                     questName = "CakeQuest3"
-                elseif lvl >= 1800 and lvl < 1850
+                elseif lvl >= 1800 and lvl < 1850 then
                     questName = "TushitaQuest2"
-                elseif lvl >= 1850 and lvl < 1900
+                elseif lvl >= 1850 and lvl < 1900 then
                     questName = "SoulReaperQuest1"
-                elseif lvl >= 1900 and lvl < 1950
+                elseif lvl >= 1900 and lvl < 1950 then
                     questName = "RaceV4Quest1"
-                elseif lvl >= 1950 and lvl < 2000
+                elseif lvl >= 1950 and lvl < 2000 then
                     questName = "GodhumanQuest1"
-                elseif lvl >= 2000 and lvl < 2050
+                elseif lvl >= 2000 and lvl < 2050 then
                     questName = "MirrorFractalQuest1"
-                elseif lvl >= 2050 and lvl < 2100
+                elseif lvl >= 2050 and lvl < 2100 then
                     questName = "ThunderGodQuest1"
-                elseif lvl >= 2100 and lvl < 2150
+                elseif lvl >= 2100 and lvl < 2150 then
                     questName = "SoulGuitarQuest1"
-                elseif lvl >= 2150 and lvl < 2200
+                elseif lvl >= 2150 and lvl < 2200 then
                     questName = "CDKQuest1"
-                elseif lvl >= 2200 and lvl < 2250
+                elseif lvl >= 2200 and lvl < 2250 then
                     questName = "AngelQuest1"
-                elseif lvl >= 2250 and lvl < 2300
+                elseif lvl >= 2250 and lvl < 2300 then
                     questName = "TrueTripleKatanaQuest1"
-                elseif lvl >= 2300 and lvl < 2350
+                elseif lvl >= 2300 and lvl < 2350 then
                     questName = "BuddySwordQuest1"
-                elseif lvl >= 2350 and lvl < 2400
+                elseif lvl >= 2350 and lvl < 2400 then
                     questName = "RengokuQuest1"
                 elseif lvl >= 2400 and lvl < 2450
                     questName = "SpikeyTridentQuest1"
@@ -1200,6 +1200,296 @@ local function disableTeleportToPlayer()
 end
 
 -- ============================================
+-- PvP Functions
+-- ============================================
+
+-- Aimbot
+local aimbotEnabled = false
+local aimbotConnection
+local aimbotTarget = nil
+
+local function findNearestPlayer()
+    local character = LocalPlayer.Character
+    if not character then return nil end
+    
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return nil end
+    
+    local nearestPlayer = nil
+    local nearestDistance = math.huge
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local targetCharacter = player.Character
+            if targetCharacter then
+                local targetHumanoid = targetCharacter:FindFirstChild("Humanoid")
+                local targetRootPart = targetCharacter:FindFirstChild("HumanoidRootPart")
+                
+                if targetHumanoid and targetHumanoid.Health > 0 and targetRootPart then
+                    local distance = (targetRootPart.Position - humanoidRootPart.Position).Magnitude
+                    if distance < nearestDistance and distance < 500 then
+                        nearestDistance = distance
+                        nearestPlayer = player
+                    end
+                end
+            end
+        end
+    end
+    
+    return nearestPlayer
+end
+
+local function enableAimbot()
+    if aimbotConnection then return end
+    
+    aimbotConnection = RunService.RenderStepped:Connect(function()
+        if not aimbotEnabled then return end
+        
+        local character = LocalPlayer.Character
+        if not character then return end
+        
+        local targetPlayer = findNearestPlayer()
+        if not targetPlayer then return end
+        
+        local targetCharacter = targetPlayer.Character
+        if not targetCharacter then return end
+        
+        local targetRootPart = targetCharacter:FindFirstChild("HumanoidRootPart")
+        if not targetRootPart then return end
+        
+        local camera = Workspace.CurrentCamera
+        if camera then
+            camera.CFrame = CFrame.new(camera.CFrame.Position, targetRootPart.Position)
+        end
+    end)
+end
+
+local function disableAimbot()
+    aimbotEnabled = false
+    if aimbotConnection then
+        aimbotConnection:Disconnect()
+        aimbotConnection = nil
+    end
+end
+
+-- Kill Aura
+local killAuraEnabled = false
+local killAuraConnection
+
+local function enableKillAura()
+    if killAuraConnection then return end
+    
+    killAuraConnection = RunService.Heartbeat:Connect(function()
+        if not killAuraEnabled then return end
+        
+        local character = LocalPlayer.Character
+        if not character then return end
+        
+        local rootPart = character:FindFirstChild("HumanoidRootPart")
+        if not rootPart then return end
+        
+        local tool = character:FindFirstChildOfClass("Tool")
+        if not tool then return end
+        
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                local targetCharacter = player.Character
+                if targetCharacter then
+                    local targetHumanoid = targetCharacter:FindFirstChild("Humanoid")
+                    local targetRootPart = targetCharacter:FindFirstChild("HumanoidRootPart")
+                    
+                    if targetHumanoid and targetHumanoid.Health > 0 and targetRootPart then
+                        local distance = (targetRootPart.Position - rootPart.Position).Magnitude
+                        if distance < 30 then
+                            tool:Activate()
+                        end
+                    end
+                end
+            end
+        end
+    end)
+end)
+
+local function disableKillAura()
+    killAuraEnabled = false
+    if killAuraConnection then
+        killAuraConnection:Disconnect()
+        killAuraConnection = nil
+    end
+end
+
+-- Target Lock
+local targetLockEnabled = false
+local targetLockConnection
+local lockedTarget = nil
+
+local function enableTargetLock()
+    if targetLockConnection then return end
+    
+    targetLockConnection = RunService.RenderStepped:Connect(function()
+        if not targetLockEnabled then return end
+        
+        local character = LocalPlayer.Character
+        if not character then return end
+        
+        local rootPart = character:FindFirstChild("HumanoidRootPart")
+        if not rootPart then return end
+        
+        if not lockedTarget or not lockedTarget.Character then
+            lockedTarget = findNearestPlayer()
+        end
+        
+        if lockedTarget and lockedTarget.Character then
+            local targetCharacter = lockedTarget.Character
+            local targetRootPart = targetCharacter:FindFirstChild("HumanoidRootPart")
+            local targetHumanoid = targetCharacter:FindFirstChild("Humanoid")
+            
+            if targetRootPart and targetHumanoid and targetHumanoid.Health > 0 then
+                local camera = Workspace.CurrentCamera
+                if camera then
+                    camera.CFrame = CFrame.new(camera.CFrame.Position, targetRootPart.Position)
+                end
+            else
+                lockedTarget = nil
+            end
+        end
+    end)
+end)
+
+local function disableTargetLock()
+    targetLockEnabled = false
+    lockedTarget = nil
+    if targetLockConnection then
+        targetLockConnection:Disconnect()
+        targetLockConnection = nil
+    end
+end
+
+-- Reach
+local reachEnabled = false
+local reachConnection
+
+local function enableReach()
+    if reachConnection then return end
+    
+    reachConnection = RunService.RenderStepped:Connect(function()
+        if not reachEnabled then return end
+        
+        local character = LocalPlayer.Character
+        if not character then return end
+        
+        for _, tool in pairs(character:GetChildren()) do
+            if tool:IsA("Tool") then
+                local reach = tool:FindFirstChild("Range")
+                if reach then
+                    reach.Value = 50
+                end
+            end
+        end
+    end)
+end)
+
+local function disableReach()
+    reachEnabled = false
+    if reachConnection then
+        reachConnection:Disconnect()
+        reachConnection = nil
+    end
+end
+
+-- Velocity Changer (Anti-KB)
+local velocityEnabled = false
+local velocityConnection
+
+local function enableVelocity()
+    if velocityConnection then return end
+    
+    velocityConnection = RunService.Stepped:Connect(function()
+        if not velocityEnabled then return end
+        
+        local character = LocalPlayer.Character
+        if not character then return end
+        
+        local rootPart = character:FindFirstChild("HumanoidRootPart")
+        if rootPart then
+            rootPart.Velocity = Vector3.new(0, 0, 0)
+            rootPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+        end
+    end)
+end)
+
+local function disableVelocity()
+    velocityEnabled = false
+    if velocityConnection then
+        velocityConnection:Disconnect()
+        velocityConnection = nil
+    end
+end
+
+-- Auto Clicker
+local autoClickerEnabled = false
+local autoClickerConnection
+
+local function enableAutoClicker()
+    if autoClickerConnection then return end
+    
+    autoClickerConnection = RunService.RenderStepped:Connect(function()
+        if not autoClickerEnabled then return end
+        
+        local character = LocalPlayer.Character
+        if not character then return end
+        
+        local tool = character:FindFirstChildOfClass("Tool")
+        if tool then
+            tool:Activate()
+        end
+    end)
+end)
+
+local function disableAutoClicker()
+    autoClickerEnabled = false
+    if autoClickerConnection then
+        autoClickerConnection:Disconnect()
+        autoClickerConnection = nil
+    end
+end
+
+-- Silent Aim
+local silentAimEnabled = false
+local silentAimConnection
+
+local function enableSilentAim()
+    if silentAimConnection then return end
+    
+    silentAimConnection = RunService.RenderStepped:Connect(function()
+        if not silentAimEnabled then return end
+        
+        local targetPlayer = findNearestPlayer()
+        if not targetPlayer then return end
+        
+        local targetCharacter = targetPlayer.Character
+        if not targetCharacter then return end
+        
+        local targetRootPart = targetCharacter:FindFirstChild("HumanoidRootPart")
+        if not targetRootPart then return end
+        
+        -- Modify mouse hit silently
+        local mouse = LocalPlayer:GetMouse()
+        if mouse then
+            mouse.Hit = CFrame.new(targetRootPart.Position)
+        end
+    end)
+end)
+
+local function disableSilentAim()
+    silentAimEnabled = false
+    if silentAimConnection then
+        silentAimConnection:Disconnect()
+        silentAimConnection = nil
+    end
+end
+
+-- ============================================
 -- Create Tabs
 -- ============================================
 
@@ -1207,6 +1497,7 @@ local MainTab = Window:CreateTab("Main", 4483362458)
 local StatsTab = Window:CreateTab("Stats", 4483362458)
 local CombatTab = Window:CreateTab("Combat", 4483362458)
 local TeleportTab = Window:CreateTab("Teleport", 4483362458)
+local PvPTab = Window:CreateTab("PvP", 4483362458)
 
 -- ============================================
 -- Main Tab Features
@@ -1719,6 +2010,192 @@ TeleportTab:CreateToggle({
 })
 
 -- ============================================
+-- PvP Tab Features
+-- ============================================
+
+PvPTab:CreateToggle({
+    Name = "Aimbot",
+    CurrentValue = false,
+    Flag = "Aimbot",
+    Callback = function(Value)
+        if Value then
+            aimbotEnabled = true
+            enableAimbot()
+            Rayfield:Notify({
+                Title = "Aimbot",
+                Content = "Enabled - Locks to nearest player",
+                Duration = 3,
+                Image = 4483362458
+            })
+        else
+            disableAimbot()
+            Rayfield:Notify({
+                Title = "Aimbot",
+                Content = "Disabled",
+                Duration = 3,
+                Image = 4483362458
+            })
+        end
+    end
+})
+
+PvPTab:CreateToggle({
+    Name = "Kill Aura",
+    CurrentValue = false,
+    Flag = "KillAura",
+    Callback = function(Value)
+        if Value then
+            killAuraEnabled = true
+            enableKillAura()
+            Rayfield:Notify({
+                Title = "Kill Aura",
+                Content = "Enabled - Attacks nearby players",
+                Duration = 3,
+                Image = 4483362458
+            })
+        else
+            disableKillAura()
+            Rayfield:Notify({
+                Title = "Kill Aura",
+                Content = "Disabled",
+                Duration = 3,
+                Image = 4483362458
+            })
+        end
+    end
+})
+
+PvPTab:CreateToggle({
+    Name = "Target Lock",
+    CurrentValue = false,
+    Flag = "TargetLock",
+    Callback = function(Value)
+        if Value then
+            targetLockEnabled = true
+            enableTargetLock()
+            Rayfield:Notify({
+                Title = "Target Lock",
+                Content = "Enabled - Locks to single target",
+                Duration = 3,
+                Image = 4483362458
+            })
+        else
+            disableTargetLock()
+            Rayfield:Notify({
+                Title = "Target Lock",
+                Content = "Disabled",
+                Duration = 3,
+                Image = 4483362458
+            })
+        end
+    end
+})
+
+PvPTab:CreateToggle({
+    Name = "Reach",
+    CurrentValue = false,
+    Flag = "Reach",
+    Callback = function(Value)
+        if Value then
+            reachEnabled = true
+            enableReach()
+            Rayfield:Notify({
+                Title = "Reach",
+                Content = "Enabled - Extended attack range",
+                Duration = 3,
+                Image = 4483362458
+            })
+        else
+            disableReach()
+            Rayfield:Notify({
+                Title = "Reach",
+                Content = "Disabled",
+                Duration = 3,
+                Image = 4483362458
+            })
+        end
+    end
+})
+
+PvPTab:CreateToggle({
+    Name = "Anti-KB (Velocity)",
+    CurrentValue = false,
+    Flag = "AntiKB",
+    Callback = function(Value)
+        if Value then
+            velocityEnabled = true
+            enableVelocity()
+            Rayfield:Notify({
+                Title = "Anti-KB",
+                Content = "Enabled - No knockback",
+                Duration = 3,
+                Image = 4483362458
+            })
+        else
+            disableVelocity()
+            Rayfield:Notify({
+                Title = "Anti-KB",
+                Content = "Disabled",
+                Duration = 3,
+                Image = 4483362458
+            })
+        end
+    end
+})
+
+PvPTab:CreateToggle({
+    Name = "Auto Clicker",
+    CurrentValue = false,
+    Flag = "AutoClicker",
+    Callback = function(Value)
+        if Value then
+            autoClickerEnabled = true
+            enableAutoClicker()
+            Rayfield:Notify({
+                Title = "Auto Clicker",
+                Content = "Enabled - Auto attacks",
+                Duration = 3,
+                Image = 4483362458
+            })
+        else
+            disableAutoClicker()
+            Rayfield:Notify({
+                Title = "Auto Clicker",
+                Content = "Disabled",
+                Duration = 3,
+                Image = 4483362458
+            })
+        end
+    end
+})
+
+PvPTab:CreateToggle({
+    Name = "Silent Aim",
+    CurrentValue = false,
+    Flag = "SilentAim",
+    Callback = function(Value)
+        if Value then
+            silentAimEnabled = true
+            enableSilentAim()
+            Rayfield:Notify({
+                Title = "Silent Aim",
+                Content = "Enabled - Invisible aim assist",
+                Duration = 3,
+                Image = 4483362458
+            })
+        else
+            disableSilentAim()
+            Rayfield:Notify({
+                Title = "Silent Aim",
+                Content = "Disabled",
+                Duration = 3,
+                Image = 4483362458
+            })
+        end
+    end
+})
+
+-- ============================================
 -- Cleanup on script unload
 -- ============================================
 
@@ -1736,6 +2213,13 @@ local function cleanup()
     teleportEnabled = false
     flyEnabled = false
     noClipEnabled = false
+    aimbotEnabled = false
+    killAuraEnabled = false
+    targetLockEnabled = false
+    reachEnabled = false
+    velocityEnabled = false
+    autoClickerEnabled = false
+    silentAimEnabled = false
     
     stopAutoFarm()
     disableAutoRaid()
@@ -1751,6 +2235,13 @@ local function cleanup()
     disableBringEnemies()
     disableAutoAttack()
     disableTeleportToPlayer()
+    disableAimbot()
+    disableKillAura()
+    disableTargetLock()
+    disableReach()
+    disableVelocity()
+    disableAutoClicker()
+    disableSilentAim()
     
     -- Note: autoStats thread will naturally exit when autoStatsEnabled is false
 end
